@@ -87,43 +87,7 @@ module Grape
     end
 
     def prepare_routes
-      routes = []
-      options[:method].each do |method|
-        options[:path].each do |path|
-          prepared_path = prepare_path(path)
-
-          anchor = options[:route_options][:anchor]
-          anchor = anchor.nil? ? true : anchor
-
-          endpoint_requirements = options[:route_options][:requirements] || {}
-          all_requirements = (settings.gather(:namespace).map(&:requirements) << endpoint_requirements)
-          requirements = all_requirements.reduce({}) do |base_requirements, single_requirements|
-            base_requirements.merge!(single_requirements)
-          end
-
-          path = compile_path(prepared_path, anchor && !options[:app], requirements)
-          regex = Rack::Mount::RegexpWithNamedGroups.new(path)
-          path_params = {}
-          # named parameters in the api path
-          named_params = regex.named_captures.map { |nc| nc[0] } - [ 'version', 'format' ]
-          named_params.each { |named_param| path_params[named_param] = "" }
-          # route parameters declared via desc or appended to the api declaration
-          route_params = (options[:route_options][:params] || {})
-          path_params.merge!(route_params)
-          request_method = (method.to_s.upcase unless method == :any)
-          routes << Route.new(options[:route_options].clone.merge({
-            :prefix => settings[:root_prefix],
-            :version => settings[:version] ? settings[:version].join('|') : nil,
-            :namespace => namespace,
-            :method => request_method,
-            :path => prepared_path,
-            :params => path_params,
-            :compiled => path,
-            })
-          )
-        end
-      end
-      routes
+      Grape::RouteSet.prepare(self)
     end
 
     def prepare_path(path)
